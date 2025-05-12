@@ -10,9 +10,6 @@ A utility for removing duplicate lines from large text files (e.g., 50 GB+). I
   ```bash
   pip install psutil
   ```
-* The `HashMap` class (imported from `HashMap.py` in the same directory).
-
-No other external libraries are needed.
 
 ---
 
