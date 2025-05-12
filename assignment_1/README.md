@@ -23,7 +23,7 @@ A utility for removing duplicate lines from large text files (e.g., 50 GB+). I
 2. (Optional) Create and activate a virtual environment:
 
    ```bash
-   python -m venv assignment1
+   python3.11 -m venv assignment1
    source assignment1/bin/activate
    ```
 3. Install `psutil` if you want memory-usage logs:
