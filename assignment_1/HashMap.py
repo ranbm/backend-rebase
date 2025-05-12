@@ -15,7 +15,7 @@ class HashMap:
         self,
         hash_function: Optional[Callable[[str], int]] = None,
         capacity: int = 100000,
-        num_buckets: int = 30,
+        num_buckets: int = 100,
         max_bucket_size: Optional[int] = None,
     ) -> None:
         self.capacity = capacity
