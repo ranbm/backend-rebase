@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import shutil
 import time
 import hashlib
 from typing import Dict, Iterator
@@ -8,9 +9,9 @@ from flask import Blueprint, request, abort, jsonify, Response, current_app
 
 file_management = Blueprint('file_management', __name__)
 
-MAX_LENGTH          = 10 * 1024 * 1024      # 10 MB per chunk
-MAX_DISK_QUOTA      = 1 * 1024 * 1024 * 1024 # 1 GB total
-MAX_HEADER_LENGTH   = 50
+MAX_LENGTH          = 10 * 1024 * 1024      # 10MB per chunk
+MAX_DISK_QUOTA      = 1 * 1024 * 1024 * 1024 # 1GB total
+MAX_HEADER_LENGTH   = 100
 MAX_HEADER_COUNT    = 20
 MAX_ID_LENGTH       = 200
 MAX_BLOBS_IN_FOLDER = 10000
@@ -93,7 +94,19 @@ def upload_and_chunk(filename):
     if not _check_blobs_count_in_folder():
         return _error(f"Too many blobs in folder (max {MAX_BLOBS_IN_FOLDER})", status_code=413)
 
-    # Generate one upload_id for this file
+    headers = request.headers
+    if len(headers) > MAX_HEADER_COUNT:
+        logger.error(f"Too many headers: {len(headers)} > {MAX_HEADER_COUNT}", extra={"filename": filename})
+        return _error(f"Too many headers, maximum allowed is {MAX_HEADER_COUNT}", status_code=400)
+
+    for header_name, header_val in headers.items():
+        if len(header_val) > MAX_HEADER_LENGTH:
+            logger.error(
+                f"Header '{header_name}' exceeds MAX_HEADER_LENGTH: {MAX_HEADER_LENGTH} chars",
+                extra={"filename": filename, "header": header_name, "length": len(header_val)}
+            )
+            return _error(f"Header '{header_name}' exceeds MAX_HEADER_LENGTH: {MAX_HEADER_LENGTH} characters",
+                          status_code=400)
     upload_key = f"{safe_name}:{time.time()}".encode("utf-8")
     upload_id = hashlib.sha256(upload_key).hexdigest()[:8]
 
@@ -227,3 +240,42 @@ def download_full(filename):
     }
 
     return Response(stream_all_chunks(), headers=headers)
+
+@file_management.route('/delete/<path:filename>', methods=['DELETE'])
+def delete_file(filename):
+    logger = file_management.logger
+
+    safe_name = _sanitize_filename(filename)
+    if not safe_name:
+        return _error("Invalid filename", status_code=400)
+
+    data_dir = _get_data_dir()
+    deleted_any = False
+
+    for sub in os.listdir(data_dir):
+        upload_folder = os.path.join(data_dir, sub)
+        if not os.path.isdir(upload_folder):
+            continue
+
+        manifest_path = os.path.join(upload_folder, "manifest.json")
+        if not os.path.isfile(manifest_path):
+            continue
+
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as mf:
+                m = json.load(mf)
+        except Exception:
+            continue
+
+        if m.get("original_filename") == safe_name:
+            try:
+                shutil.rmtree(upload_folder)
+                deleted_any = True
+            except Exception as e:
+                logger.error(f"Failed to delete folder {upload_folder}: {e}")
+                return _error("Error deleting files", status_code=500)
+
+    if not deleted_any:
+        return _error("file not found", status_code=404)
+
+    return jsonify({"deleted": safe_name}), 200
