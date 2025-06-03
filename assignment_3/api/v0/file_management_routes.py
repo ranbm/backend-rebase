@@ -9,9 +9,9 @@ from flask import Blueprint, request, abort, jsonify, Response, current_app
 
 file_management = Blueprint('file_management', __name__)
 
-MAX_LENGTH          = 10 * 1024 * 1024      # 10 MB per chunk
-MAX_DISK_QUOTA      = 1 * 1024 * 1024 * 1024 # 1 GB total
-MAX_HEADER_LENGTH   = 50
+MAX_LENGTH          = 10 * 1024 * 1024      # 10MB per chunk
+MAX_DISK_QUOTA      = 1 * 1024 * 1024 * 1024 # 1GB total
+MAX_HEADER_LENGTH   = 100
 MAX_HEADER_COUNT    = 20
 MAX_ID_LENGTH       = 200
 MAX_BLOBS_IN_FOLDER = 10000
@@ -94,7 +94,19 @@ def upload_and_chunk(filename):
     if not _check_blobs_count_in_folder():
         return _error(f"Too many blobs in folder (max {MAX_BLOBS_IN_FOLDER})", status_code=413)
 
-    # Generate one upload_id for this file
+    headers = request.headers
+    if len(headers) > MAX_HEADER_COUNT:
+        logger.error(f"Too many headers: {len(headers)} > {MAX_HEADER_COUNT}", extra={"filename": filename})
+        return _error(f"Too many headers, maximum allowed is {MAX_HEADER_COUNT}", status_code=400)
+
+    for header_name, header_val in headers.items():
+        if len(header_val) > MAX_HEADER_LENGTH:
+            logger.error(
+                f"Header '{header_name}' exceeds MAX_HEADER_LENGTH: {MAX_HEADER_LENGTH} chars",
+                extra={"filename": filename, "header": header_name, "length": len(header_val)}
+            )
+            return _error(f"Header '{header_name}' exceeds MAX_HEADER_LENGTH: {MAX_HEADER_LENGTH} characters",
+                          status_code=400)
     upload_key = f"{safe_name}:{time.time()}".encode("utf-8")
     upload_id = hashlib.sha256(upload_key).hexdigest()[:8]
 
