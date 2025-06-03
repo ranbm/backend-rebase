@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import shutil
 import time
 import hashlib
 from typing import Dict, Iterator
@@ -227,3 +228,42 @@ def download_full(filename):
     }
 
     return Response(stream_all_chunks(), headers=headers)
+
+@file_management.route('/delete/<path:filename>', methods=['DELETE'])
+def delete_file(filename):
+    logger = file_management.logger
+
+    safe_name = _sanitize_filename(filename)
+    if not safe_name:
+        return _error("Invalid filename", status_code=400)
+
+    data_dir = _get_data_dir()
+    deleted_any = False
+
+    for sub in os.listdir(data_dir):
+        upload_folder = os.path.join(data_dir, sub)
+        if not os.path.isdir(upload_folder):
+            continue
+
+        manifest_path = os.path.join(upload_folder, "manifest.json")
+        if not os.path.isfile(manifest_path):
+            continue
+
+        try:
+            with open(manifest_path, "r", encoding="utf-8") as mf:
+                m = json.load(mf)
+        except Exception:
+            continue
+
+        if m.get("original_filename") == safe_name:
+            try:
+                shutil.rmtree(upload_folder)
+                deleted_any = True
+            except Exception as e:
+                logger.error(f"Failed to delete folder {upload_folder}: {e}")
+                return _error("Error deleting files", status_code=500)
+
+    if not deleted_any:
+        return _error("file not found", status_code=404)
+
+    return jsonify({"deleted": safe_name}), 200
