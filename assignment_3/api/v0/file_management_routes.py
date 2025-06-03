@@ -17,7 +17,6 @@ MAX_ID_LENGTH       = 200
 MAX_BLOBS_IN_FOLDER = 10000
 
 CHUNK_SIZE = 100_000
-# Expect chunk IDs of the form "<8-hex>-<4-digits>"
 ID_PATTERN = re.compile(r"^[a-f0-9]{8}-\d{4}$")
 
 
@@ -164,7 +163,6 @@ def upload_and_chunk(filename):
     if not created_blob_ids:
         return _error("No file data received", status_code=400)
 
-    # Write manifest.json so download can reassemble
     manifest = {
         "original_filename": safe_name,
         "chunks": created_blob_ids
