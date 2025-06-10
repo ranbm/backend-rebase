@@ -1,0 +1,49 @@
+version: "3.8"
+
+services:
+  node1:
+    build:
+      context: .
+      dockerfile: ./file_management/Dockerfile
+    container_name: node1
+    ports:
+      - "50001:50001"
+    environment:
+      - PORT=50001
+      - logzIO_api_key=mFJpupXOLGfnACdjyGZlomwDdpxVfUFI
+
+  node2:
+    build:
+      context: .
+      dockerfile: ./file_management/Dockerfile
+    container_name: node2
+    ports:
+      - "50002:50002"
+    environment:
+      - PORT=50002
+      - logzIO_api_key=mFJpupXOLGfnACdjyGZlomwDdpxVfUFI
+
+  node3:
+    build:
+      context: .
+      dockerfile: ./file_management/Dockerfile
+    container_name: node3
+    ports:
+      - "50003:50003"
+    environment:
+      - PORT=50003
+      - logzIO_api_key=mFJpupXOLGfnACdjyGZlomwDdpxVfUFI
+
+  load_balancer:
+    build:
+      context: .
+      dockerfile: ./load_balancer/Dockerfile
+    container_name: load_balancer
+    ports:
+      - "40001:40001"
+    environment:
+      - logzIO_api_key=mFJpupXOLGfnACdjyGZlomwDdpxVfUFI
+    depends_on:
+      - node1
+      - node2
+      - node3
