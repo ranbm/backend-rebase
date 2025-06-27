@@ -17,5 +17,5 @@ COPY file_management/pyproject.toml file_management/setup.cfg ./
 RUN pip install uv
 
 RUN uv pip install -e . --system
-EXPOSE 50001
+EXPOSE 3000
 CMD ["python", "-m", "file_management.app"]

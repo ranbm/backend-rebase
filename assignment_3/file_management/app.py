@@ -90,7 +90,7 @@ def make_app():
 
 if __name__ == '__main__':
     app, logger = make_app()
-    port = int(os.environ.get("PORT", 50001))
+    port = int(os.environ.get("PORT", 3000))
     app.logger = logger
     app.logger.info(f'Starting file management service on port {port}')
     

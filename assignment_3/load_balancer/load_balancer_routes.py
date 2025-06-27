@@ -1,7 +1,7 @@
 import requests
 import logging
 from flask import Blueprint, request, jsonify, Response, abort
-from load_balancer.load_balancer import LoadBalancer
+from assignment_3.load_balancer.load_balancer import LoadBalancer
 
 loadbalancer_api = Blueprint("loadbalancer_api", __name__)
 lb = LoadBalancer()
