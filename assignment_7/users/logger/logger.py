@@ -8,7 +8,7 @@ logger = logging.getLogger('rbm_awesome_logger')
 def log_user_event(event: LogEvent, user_id: str):
     logger.info(json.dumps({
         "event": event,
-        "user_id": user_id
+        "user_id": user_id,
     }))
 
 
@@ -21,7 +21,7 @@ def log_error_event(event: LogEvent, error: str):
 
 def log_user_retrieval_event(event: LogEvent, user_id: str = None):
     log_data = {
-        "event": event
+        "event": event,
     }
     if user_id:
         log_data["user_id"] = user_id
@@ -31,7 +31,7 @@ def log_user_retrieval_event(event: LogEvent, user_id: str = None):
 
 def log_user_deletion_event(event: LogEvent, user_id: str = None):
     log_data = {
-        "event": event
+        "event": event,
     }
     if user_id:
         log_data["user_id"] = user_id

@@ -15,10 +15,9 @@ logger = logging.getLogger('rbm_awesome_logger')
 EMAIL_REGEX = re.compile(r"^(?!.*\.\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 @users_api.route('/<email>', methods=['GET'])
-def get_user(email):
+async def get_user(email):
     try:
-        user = get_user_by_email(email, include_deleted=False)
-        
+        user = await get_user_by_email(email, include_deleted=False)
         if user:
             user_id, email, full_name, joined_at = user
             log_user_retrieval_event(LogEvent.USER_RETRIEVED, user_id)
@@ -37,13 +36,13 @@ def get_user(email):
 
 
 @users_api.route('/<email>', methods=['DELETE'])
-def delete_user(email):
+async def delete_user(email):
     try:
-        user_id = get_active_user_id(email)
+        user_id = await get_active_user_id(email)
         
         deleted_since = datetime.datetime.utcnow()
-        result, rows_affected = execute_update(
-            "UPDATE users SET deleted_since = %s WHERE email = %s AND deleted_since IS NULL", 
+        result, rows_affected = await execute_update(
+            "UPDATE users SET deleted_since = $1 WHERE email = $2 AND deleted_since IS NULL", 
             (deleted_since, email)
         )
         
@@ -60,7 +59,7 @@ def delete_user(email):
 
 
 @users_api.route('/', methods=['POST'])
-def create_or_update_user():
+async def create_or_update_user():
     data = request.get_json()
 
     if not data:
@@ -85,10 +84,10 @@ def create_or_update_user():
             WITH existing_user AS (
                 SELECT deleted_since IS NOT NULL as was_deleted
                 FROM users 
-                WHERE email = %s
+                WHERE email = $1
             )
             INSERT INTO users (id, full_name, email, joined_at)
-            VALUES (%s, %s, %s, %s)
+            VALUES ($2, $3, $4, $5)
             ON CONFLICT (email) DO UPDATE
             SET
                 full_name = EXCLUDED.full_name,
@@ -104,7 +103,7 @@ def create_or_update_user():
                 (SELECT (xmax != 0 AND was_deleted) FROM existing_user) as was_reactivated
         """
         
-        result, rows_affected = execute_update(upsert_query, (email, user_id, full_name, email, joined_at))
+        result, rows_affected = await execute_update(upsert_query, (email, user_id, full_name, email, joined_at))
 
         if result:
             returned_user_id, email_returned, is_inserted, is_updated, was_reactivated = result
@@ -120,7 +119,7 @@ def create_or_update_user():
             return "", 201
 
         else:
-            existing_user_id = get_active_user_id(email)
+            existing_user_id = await get_active_user_id(email)
             log_user_event(LogEvent.USER_ALREADY_ACTIVE, existing_user_id or user_id)
             return "", 200
 
