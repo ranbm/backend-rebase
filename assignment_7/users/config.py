@@ -1,10 +1,49 @@
 import os
 
 LOGZIO_API_KEY = os.getenv("logzIO_api_key")
-if not LOGZIO_API_KEY:
+
+# Check if we're in test mode
+IS_TESTING = os.getenv("TESTING", "false").lower() == "true"
+
+if not LOGZIO_API_KEY and not IS_TESTING:
     raise RuntimeError("Missing environment variable: LOGZIO_API_KEY")
 
-LOGGING = {
+TEST_LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '%(levelname)s - %(message)s',
+        }
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'level': 'DEBUG',
+            'formatter': 'simple',
+            'stream': 'ext://sys.stdout'
+        },
+        'null': {
+            'class': 'logging.NullHandler',
+            'level': 'DEBUG'
+        }
+    },
+    'loggers': {
+        'rbm_awesome_logger': {
+            'level': 'DEBUG',
+            'handlers': ['null'],  # Use null handler to suppress logs during tests
+            'propagate': False
+        },
+        'werkzeug': {
+            'level': 'ERROR',
+            'handlers': [],
+            'propagate': False
+        }
+    }
+}
+
+# Production logging configuration (logz.io)
+PRODUCTION_LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
@@ -26,15 +65,17 @@ LOGGING = {
         }
     },
     'loggers': {
-        '': {
+        'rbm_awesome_logger': {
             'level': 'DEBUG',
             'handlers': ['logzio'],
-            'propagate': True
+            'propagate': False
         },
         'werkzeug': {
-            'level': 'ERROR',  # Only send ERROR level logs, not INFO/DEBUG
-            'handlers': [],    # Don't send to logzio
-            'propagate': False # Don't propagate to root logger
+            'level': 'ERROR',
+            'handlers': [],
+            'propagate': False
         }
     }
 }
+
+LOGGING = TEST_LOGGING if IS_TESTING else PRODUCTION_LOGGING

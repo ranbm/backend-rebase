@@ -2,6 +2,7 @@ import pytest
 import os
 from unittest.mock import patch, MagicMock
 
+os.environ.setdefault('TESTING', 'true')
 os.environ.setdefault('logzIO_api_key', 'test-api-key-for-pytest')
 
 from users.app import make_app
