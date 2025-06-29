@@ -5,19 +5,6 @@ requires = [
 ]
 build-backend = "setuptools.build_meta"
 
-[project]
-name = "users-microservice"
-version = "1.0.0"
-requires-python = ">=3.11"
-dependencies = [
-    "flask[async]>=2.0.0",
-    "asyncpg>=0.29.0",
-    "logzio-python-handler>=4.1.0",
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-mock>=3.10.0"
-]
-
 [tool.black]
 line-length = 120
 target_version = ['py38']

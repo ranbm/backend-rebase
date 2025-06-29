@@ -5,8 +5,7 @@ import signal
 import sys
 import threading
 import time
-import asyncio
-from contextlib import asynccontextmanager
+from contextlib import contextmanager
 
 from flask import Flask, jsonify
 from users.api.v0.users_routes import users_api
@@ -16,18 +15,22 @@ from users.db_utils import get_connection
 _app_ready = False
 _shutdown_event = threading.Event()
 
-async def check_database_connection(max_retries=5, retry_delay=2):
+
+def check_database_connection(max_retries=5, retry_delay=2):
     for attempt in range(max_retries):
         try:
-            conn = await get_connection()
-            await conn.fetchval("SELECT 1")
-            await conn.close()
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.close()
+            conn.close()
             return True
         except Exception as e:
             logging.error(f"Database connection attempt {attempt + 1} failed: {e}")
             if attempt < max_retries - 1:
-                await asyncio.sleep(retry_delay)
+                time.sleep(retry_delay)
     return False
+
 
 def setup_graceful_shutdown(app):
     def shutdown_handler(signum, frame):
@@ -41,20 +44,21 @@ def setup_graceful_shutdown(app):
         logging.info("Shutdown complete")
         sys.exit(0)
     
-    signal.signal(signal.SIGTERM, shutdown_handler)
-    signal.signal(signal.SIGINT, shutdown_handler)
+    signal.signal(signal.SIGTERM, shutdown_handler)  # Docker stop
+    signal.signal(signal.SIGINT, shutdown_handler)   # Ctrl+C
     
     atexit.register(lambda: logging.info("Application cleanup completed"))
 
-@asynccontextmanager
-async def application_lifecycle():
+
+@contextmanager
+def application_lifecycle():
     global _app_ready
     
     logging.info("=== APPLICATION STARTUP ===")
     
     try:
         logging.info("Checking database connection...")
-        if not await check_database_connection():
+        if not check_database_connection():
             raise Exception("Database connection failed after retries")
         logging.info("Database connection verified")
         
@@ -70,6 +74,7 @@ async def application_lifecycle():
         logging.info("=== APPLICATION SHUTDOWN ===")
         _app_ready = False
 
+
 def make_app():
     app = Flask(__name__)
 
@@ -79,7 +84,7 @@ def make_app():
     setup_graceful_shutdown(app)
     
     @app.route('/health', methods=['GET'])
-    async def health_check():
+    def health_check():
         if not _app_ready:
             return jsonify({
                 "status": "starting",
@@ -87,9 +92,11 @@ def make_app():
             }), 503
         
         try:
-            conn = await get_connection()
-            await conn.fetchval("SELECT 1")
-            await conn.close()
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+            cursor.close()
+            conn.close()
             db_status = "healthy"
         except Exception:
             db_status = "unhealthy"
@@ -102,7 +109,7 @@ def make_app():
         }), status_code
 
     @app.route('/ready', methods=['GET'])
-    async def readiness_check():
+    def readiness_check():
         if _app_ready:
             return jsonify({"status": "ready"}), 200
         else:
@@ -117,10 +124,11 @@ def make_app():
 
     return app
 
-async def run_app():
+
+def run_app():
     app = make_app()
     
-    async with application_lifecycle():
+    with application_lifecycle():
         logger = logging.getLogger('rbm_awesome_logger')
         logger.info('Starting rbm_awesome_app on port 5001')
         
@@ -131,9 +139,10 @@ async def run_app():
             use_reloader=False
         )
 
+
 if __name__ == '__main__':
     try:
-        asyncio.run(run_app())
+        run_app()
     except KeyboardInterrupt:
         logging.info("Received keyboard interrupt")
     except Exception as e:
