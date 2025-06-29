@@ -121,7 +121,7 @@ def create_or_update_user():
         else:
             existing_user_id = get_active_user_id(email)
             log_user_event(LogEvent.USER_ALREADY_ACTIVE, existing_user_id or user_id)
-            return "", 200
+            return "user already exists", 200
 
     except Exception as e:
         log_error_event(LogEvent.DB_ERROR, str(e))
