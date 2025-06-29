@@ -16,9 +16,18 @@ services:
       - DB_PASSWORD=secret
       - logzIO_api_key=mFJpupXOLGfnACdjyGZlomwDdpxVfUFI
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
-      - .:/app  # for live-reload during dev, optional
+      - .:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    stop_grace_period: 30s
 
   db:
     image: postgres:15
@@ -29,8 +38,15 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./pgdata:/var/lib/postgresql/data  # bind-mount instead of named volume
+      - ./pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app_user -d app_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
 
 volumes:
   pgdata:

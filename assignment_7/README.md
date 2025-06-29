@@ -10,7 +10,6 @@ A production-ready users microservice built with Flask and PostgreSQL, featuring
 - **User Reactivation**: Creating a deleted user reactivates them
 - **Structured Logging**: JSON logs sent to logz.io with comprehensive event tracking
 - **Email Validation**: Robust email format validation
-- **Docker Support**: Fully containerized with PostgreSQL
 
 ## Quick Start
 
@@ -103,7 +102,6 @@ CREATE TABLE users (
 
 ## Logging Events
 
-The service logs the following structured events to logz.io:
 
 - `user_created` - New user registration
 - `user_reactivated` - Deleted user recreated
@@ -125,7 +123,7 @@ assignment_7/
 │   ├── db_utils.py          # Database abstraction layer
 │   ├── config.py            # logz.io configuration
 │   └── app.py               # Flask application
-├── tests/                   # Test suite
+├── users_tests/             # Test suite
 ├── docker-compose.yml       # Docker configuration
 ├── Dockerfile              # Container definition
 └── init.sql                 # Database initialization
@@ -135,13 +133,13 @@ assignment_7/
 
 ```bash
 # Run all tests
-docker exec -it assignment_7_web_1 python -m pytest tests/ -v
+docker exec -it assignment_7_web_1 python -m pytest users_tests/ -v
 
 # Run specific test file
-docker exec -it assignment_7_web_1 python -m pytest tests/test_users_api.py -v
+docker exec -it assignment_7_web_1 python -m pytest users_tests/test_users_api.py -v
 
 # Run specific test
-docker exec -it assignment_7_web_1 python -m pytest tests/test_users_api.py::test_create_user_success -v
+docker exec -it assignment_7_web_1 python -m pytest users_tests/test_users_api.py::test_create_user_success -v
 ```
 
 ### Local Development
@@ -158,6 +156,8 @@ docker-compose logs db
 
 # Database access
 docker exec -it assignment_7_db_1 psql -U app_user -d app_db
+
+# Check health status
+curl http://localhost:5001/health
+curl http://localhost:5001/ready
 ```
-
-

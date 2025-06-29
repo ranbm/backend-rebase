@@ -11,7 +11,7 @@ from users.logger.log_types import LogEvent
 from users.logger.logger import log_user_event, log_error_event, log_user_retrieval_event, log_user_deletion_event
 
 users_api = Blueprint('users', __name__)
-logger = logging.getLogger('rbm_awesome_logger')  # Get the same logger from app.py
+logger = logging.getLogger('rbm_awesome_logger')
 EMAIL_REGEX = re.compile(r"^(?!.*\.\.)[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 @users_api.route('/<email>', methods=['GET'])
@@ -21,14 +21,14 @@ def get_user(email):
         
         if user:
             user_id, email, full_name, joined_at = user
-            log_user_retrieval_event(LogEvent.USER_RETRIEVED, email, user_id)
+            log_user_retrieval_event(LogEvent.USER_RETRIEVED, user_id)
             return jsonify({
                 "email": email,
                 "full_name": full_name,
                 "joined_at": joined_at.isoformat() + "Z"  # ISO-8601 format with UTC indicator
             })
         else:
-            log_user_retrieval_event(LogEvent.USER_NOT_FOUND, email)
+            log_user_retrieval_event(LogEvent.USER_NOT_FOUND)
             return jsonify({"error": "User not found"}), 404
             
     except Exception as e:
@@ -39,10 +39,8 @@ def get_user(email):
 @users_api.route('/<email>', methods=['DELETE'])
 def delete_user(email):
     try:
-        # Get the user_id if the user exists and is active (for logging)
         user_id = get_active_user_id(email)
         
-        # Perform the soft delete using the exact SQL statement required
         deleted_since = datetime.datetime.utcnow()
         result, rows_affected = execute_update(
             "UPDATE users SET deleted_since = %s WHERE email = %s AND deleted_since IS NULL", 
@@ -50,13 +48,10 @@ def delete_user(email):
         )
         
         if rows_affected > 0:
-            # User was successfully soft-deleted
-            log_user_deletion_event(LogEvent.USER_SOFT_DELETED, email, user_id)
+            log_user_deletion_event(LogEvent.USER_SOFT_DELETED, user_id)
         else:
-            # User doesn't exist or is already inactive
-            log_user_deletion_event(LogEvent.USER_NOT_FOUND_OR_INACTIVE, email)
+            log_user_deletion_event(LogEvent.USER_NOT_FOUND_OR_INACTIVE)
         
-        # Return empty response as requested
         return "", 204
         
     except Exception as e:
@@ -68,11 +63,14 @@ def delete_user(email):
 def create_or_update_user():
     data = request.get_json()
 
-    if not data or 'email' not in data or 'full_name' not in data:
+    if not data:
         return jsonify({"error": "email and full_name are required"}), 400
 
-    email = data['email'].strip()
-    full_name = data['full_name'].strip()
+    email = data.get('email', '').strip()
+    full_name = data.get('full_name', '').strip()
+
+    if not email or not full_name:
+        return jsonify({"error": "email and full_name are required"}), 400
 
     if not EMAIL_REGEX.match(email):
         return jsonify({"error": "Invalid email format"}), 400
@@ -84,36 +82,49 @@ def create_or_update_user():
 
     try:
         upsert_query = """
+            WITH existing_user AS (
+                SELECT deleted_since IS NOT NULL as was_deleted
+                FROM users 
+                WHERE email = %s
+            )
             INSERT INTO users (id, full_name, email, joined_at)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (email) DO UPDATE
             SET
                 full_name = EXCLUDED.full_name,
-                joined_at = EXCLUDED.joined_at,
                 deleted_since = NULL
             WHERE
                 users.full_name IS DISTINCT FROM EXCLUDED.full_name OR
                 users.deleted_since IS NOT NULL
-            RETURNING id, email, deleted_since
+            RETURNING 
+                id, 
+                email,
+                (xmax = 0) as is_inserted,
+                (xmax != 0) as is_updated,
+                (SELECT (xmax != 0 AND was_deleted) FROM existing_user) as was_reactivated
         """
         
-        result, rows_affected = execute_update(upsert_query, (user_id, full_name, email, joined_at))
+        result, rows_affected = execute_update(upsert_query, (email, user_id, full_name, email, joined_at))
 
         if result:
-            user_id, email_returned, deleted_since = result
+            returned_user_id, email_returned, is_inserted, is_updated, was_reactivated = result
 
-            # Use the semantic helper function
-            event = LogEvent.USER_REACTIVATED if deleted_since else LogEvent.USER_CREATED
-            log_user_event(event, user_id, email_returned)
+            if is_inserted:
+                event = LogEvent.USER_CREATED
+            elif was_reactivated:
+                event = LogEvent.USER_REACTIVATED
+            else:
+                event = LogEvent.USER_ALREADY_ACTIVE
+
+            log_user_event(event, returned_user_id)
             return "", 201
 
         else:
-            # Use the semantic helper function
-            log_user_event(LogEvent.USER_ALREADY_ACTIVE, user_id, email)
+            existing_user_id = get_active_user_id(email)
+            log_user_event(LogEvent.USER_ALREADY_ACTIVE, existing_user_id or user_id)
             return "", 200
 
     except Exception as e:
-        # Use the semantic helper function  
         log_error_event(LogEvent.DB_ERROR, str(e))
         return jsonify({"error": "internal server error"}), 500
 
