@@ -20,8 +20,8 @@ A production-ready users microservice built with Flask and PostgreSQL, featuring
 ### Run the Service
 
 ```bash
-# Clone and navigate to the project
-cd assignment_7
+# Clone and navigate to the project root
+cd backend-rebase
 
 # Start the services
 docker-compose up -d
@@ -31,7 +31,7 @@ docker-compose up -d
 
 ### Environment Variables
 
-Required environment variables (set in `docker-compose.yml`):
+Required environment variables (set in `docker-compose.yml` in the root directory):
 
 ```bash
 DB_HOST=db
@@ -116,36 +116,37 @@ CREATE TABLE users (
 
 ### Project Structure
 ```
-assignment_7/
-├── users/                    # Main application package
-│   ├── api/v0/              # API routes
-│   ├── logger/              # Logging utilities
-│   ├── db_utils.py          # Database abstraction layer
-│   ├── config.py            # logz.io configuration
-│   └── app.py               # Flask application
-├── users_tests/             # Test suite
-├── docker-compose.yml       # Docker configuration
-├── Dockerfile              # Container definition
-└── init.sql                 # Database initialization
+backend-rebase/
+├── docker-compose.yml       # Docker configuration (root level)
+├── Dockerfile              # Container definition (root level)
+├── init.sql                 # Database initialization (root level)
+└── assignment_7/
+    ├── users/                    # Main application package
+    │   ├── api/v0/              # API routes
+    │   ├── logger/              # Logging utilities
+    │   ├── db_utils.py          # Database abstraction layer
+    │   ├── config.py            # logz.io configuration
+    │   └── app.py               # Flask application
+    └── users_tests/             # Test suite
 ```
 
 ### Running Tests
 
 ```bash
 # Run all tests
-docker exec -it assignment_7_web_1 python -m pytest users_tests/ -v
+docker exec -it backend-rebase_web_1 python -m pytest users_tests/ -v
 
 # Run specific test file
-docker exec -it assignment_7_web_1 python -m pytest users_tests/test_users_api.py -v
+docker exec -it backend-rebase_web_1 python -m pytest users_tests/test_users_api.py -v
 
 # Run specific test
-docker exec -it assignment_7_web_1 python -m pytest users_tests/test_users_api.py::test_create_user_success -v
+docker exec -it backend-rebase_web_1 python -m pytest users_tests/test_users_api.py::test_create_user_success -v
 ```
 
 ### Local Development
 
 ```bash
-# Build and run
+# Build and run (from root directory)
 docker-compose down
 docker-compose build
 docker-compose up -d
@@ -155,7 +156,7 @@ docker-compose logs web
 docker-compose logs db
 
 # Database access
-docker exec -it assignment_7_db_1 psql -U app_user -d app_db
+docker exec -it backend-rebase_db_1 psql -U app_user -d app_db
 
 # Check health status
 curl http://localhost:5001/health
