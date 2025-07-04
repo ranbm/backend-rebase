@@ -3,8 +3,8 @@ version: '3.8'
 services:
   web:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ./assignment_7
+      dockerfile: ../Dockerfile
     ports:
       - "5001:5001"
     environment:
@@ -18,7 +18,7 @@ services:
     depends_on:
       - db
     volumes:
-      - .:/app  # for live-reload during dev, optional
+      - ./assignment_7:/app  # for live-reload during dev, optional
 
   db:
     image: postgres:15
@@ -29,8 +29,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./pgdata:/var/lib/postgresql/data  # bind-mount instead of named volume
+      - ./assignment_7/pgdata:/var/lib/postgresql/data  # bind-mount instead of named volume
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
-  pgdata:
+  pgdata: 
