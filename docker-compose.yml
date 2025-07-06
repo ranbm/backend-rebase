@@ -20,6 +20,25 @@ services:
     volumes:
       - ./assignment_7:/app  # for live-reload during dev, optional
 
+  reports-api:
+    build:
+      context: .
+      dockerfile: ./reports/Dockerfile
+    ports:
+      - "5010:5010"
+    environment:
+      - FLASK_ENV=development
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=app_db
+      - DB_USER=app_user
+      - DB_PASSWORD=secret
+      - logzIO_api_key=mFJpupXOLGfnACdjyGZlomwDdpxVfUFI
+    depends_on:
+      - db
+    volumes:
+      - ./reports:/app/reports  # for live-reload during dev, optional
+
   db:
     image: postgres:15
     environment:
