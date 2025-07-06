@@ -64,7 +64,8 @@ def get_report(page):
             return Response("Database error", status=500)
 
         data = [{"h": hs.hour, "v": vc} for hs, vc in rows]
-
+        if not data:
+            return Response(f"No entries for this page: {page}", status=500)
         if take is not None:
             data = data[:take]
 
