@@ -1,0 +1,19 @@
+{
+  "name": "page-view-api-service",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Express microservice for handling POST requests and table updates",
+  "dependencies": {
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
+    "nodemon": "^3.1.10"
+  }
+}
