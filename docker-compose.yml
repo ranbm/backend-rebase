@@ -6,7 +6,7 @@ services:
       context: ./assignment_7
       dockerfile: ../Dockerfile
     ports:
-      - "5001:5001"
+      - "5002:5001"
     environment:
       - FLASK_ENV=development
       - DB_HOST=db
@@ -18,7 +18,43 @@ services:
     depends_on:
       - db
     volumes:
-      - ./assignment_7:/app  # for live-reload during dev, optional
+      - ./assignment_7:/app
+
+  reports-api:
+    build:
+      context: .
+      dockerfile: ./reports/Dockerfile
+    ports:
+      - "5010:5010"
+    environment:
+      - FLASK_ENV=development
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_NAME=app_db
+      - DB_USER=app_user
+      - DB_PASSWORD=secret
+      - logzIO_api_key=mFJpupXOLGfnACdjyGZlomwDdpxVfUFI
+    depends_on:
+      - db
+    volumes:
+      - ./reports:/app/reports
+
+  page-view-counter:
+    build:
+      context: ./page-view-counter
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./page-view-counter:/app
+    environment:
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=app_db
+      - POSTGRES_USER=app_user
+      - POSTGRES_PASSWORD=secret
+    depends_on:
+      - db
 
   reports-api:
     build:
@@ -48,8 +84,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./assignment_7/pgdata:/var/lib/postgresql/data  # bind-mount instead of named volume
+      - ./assignment_7/pgdata:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
-  pgdata: 
+  pgdata:
