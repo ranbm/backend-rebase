@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { pool } = require('../config/db');
-const { logger } = require('../config/logger');
+import { pool } from '../config/db.js';
+import { logger } from '../config/logger.js';
 
 router.post('/single', async (req, res) => {
   const { page, timestamp } = req.body;
@@ -18,26 +18,29 @@ router.post('/single', async (req, res) => {
     // Parse timestamp in format YYYY-MM-DD_HH:mm
     const [datePart, timePart] = timestamp.split('_');
     const [hour] = timePart.split(':');
+    // Create a proper timestamp for hour_start
+    const hourStart = `${datePart} ${hour}:00:00`;
 
     const result = await pool.query(
-      `INSERT INTO page_views (page, hour, page_view) 
+      `INSERT INTO page_hourly_views (page_id, hour_start, view_count) 
        VALUES ($1, $2, 1) 
-       ON CONFLICT (page, hour) 
-       DO UPDATE SET page_view = page_views.page_view + 1 
-       RETURNING id, page_views.page_view`,
-      [page, hour]
+       ON CONFLICT (page_id, hour_start) 
+       DO UPDATE SET view_count = page_hourly_views.view_count + 1 
+       RETURNING page_id, hour_start, view_count`,
+      [page, hourStart]
     );
 
     const response = {
       success: true,
-      id: result.rows[0].id,
-      page_view: result.rows[0].page_view
+      page_id: result.rows[0].page_id,
+      hour_start: result.rows[0].hour_start,
+      view_count: result.rows[0].view_count
     };
-    logger.info('Successfully recorded single page view', { page, hour: hour, views: result.rows[0].page_view });
+    logger.info('Successfully recorded single page view', { page, hour: hour, views: result.rows[0].view_count });
     res.status(201).json(response);
   } catch (error) {
     logger.error('Failed to record single page view', { error: error.message, page, timestamp });
-    res.status(500).json({ error: 'Failed to record page view' });
+    res.status(500).json({ error: 'Failed to record page view', error });
   }
 });
 
@@ -74,15 +77,17 @@ router.post('/multi', async (req, res) => {
         // Extract hour from timestamp
         const [datePart, timePart] = timestamp.split('_');
         const [hour] = timePart.split(':');
+        // Create a proper timestamp for hour_start
+        const hourStart = `${datePart} ${hour}:00:00`;
 
         // Add upsert query for this page and hour
         const query = {
-          text: `INSERT INTO page_views (page, hour, page_view) 
+          text: `INSERT INTO page_hourly_views (page_id, hour_start, view_count) 
                 VALUES ($1, $2, $3) 
-                ON CONFLICT (page, hour) 
-                DO UPDATE SET page_view = page_views.page_view + $3 
-                RETURNING id, page_views.page_view`,
-          values: [page, hour, count]
+                ON CONFLICT (page_id, hour_start) 
+                DO UPDATE SET view_count = page_hourly_views.view_count + $3 
+                RETURNING page_id, hour_start, view_count`,
+          values: [page, hourStart, count]
         };
 
         insertPromises.push(pool.query(query));
@@ -95,11 +100,12 @@ router.post('/multi', async (req, res) => {
     const response = {
       success: true,
       updates: results.map(result => ({
-        id: result.rows[0].id,
-        page_view: result.rows[0].page_view
+        page_id: result.rows[0].page_id,
+        hour_start: result.rows[0].hour_start,
+        view_count: result.rows[0].view_count
       }))
     };
-    logger.info('Successfully recorded multiple page views', { 
+    logger.info('Successfully recorded multiple page views', {
       pageCount: Object.keys(req.body).length,
       totalUpdates: results.length
     });
@@ -110,4 +116,4 @@ router.post('/multi', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,4 +1,5 @@
-const { Pool } = require('pg');
+import pkg from 'pg';
+const { Pool } = pkg;
 
 const pool = new Pool({
   user: process.env.POSTGRES_USER || 'postgres',
@@ -26,4 +27,4 @@ const testConnection = async () => {
   }
 };
 
-module.exports = { pool, testConnection };
+export { pool, testConnection };

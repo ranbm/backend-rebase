@@ -1,4 +1,4 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
 
 // Sample POST endpoint - will be updated based on specific requirements
@@ -11,4 +11,4 @@ router.post('/update', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

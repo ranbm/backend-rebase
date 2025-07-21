@@ -1,13 +1,13 @@
-const express = require('express');
-const { pool, testConnection } = require('./config/db');
-const { logger } = require('./config/logger');
+import express from 'express';
+import { pool, testConnection } from './config/db.js';
+import { logger } from './config/logger.js';
 const app = express();
 
 // Middleware for parsing JSON bodies
 app.use(express.json());
 
 // Import routes
-const pageViewsRouter = require('./routes/pageViews');
+import pageViewsRouter from './routes/pageViews.js';
 
 // Use routes
 app.use('/page-views', pageViewsRouter);
