@@ -1,0 +1,18 @@
+{
+  "name": "rabbit_api_gw",
+  "version": "1.0.0",
+  "description": "Express service for RabbitMQ queue management",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "amqplib": "^0.10.3",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
